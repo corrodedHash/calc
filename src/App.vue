@@ -1,9 +1,7 @@
 <template>
-  <div id="app">
-    <display :text="display()" />
-    <div class="pad">
-      <input-pad @numberpress="bla" @clear="clear" />
-    </div>
+  <display :text="display()" />
+  <div class="pad">
+    <input-pad @numberpress="bla" @clear="clear" />
   </div>
 </template>
 
@@ -40,6 +38,9 @@ import { BinaryOperation } from "@/calc_statemachine";
           break;
         case "div":
           this.sm.binary_operation(BinaryOperation.Div);
+          break;
+        case "power":
+          this.sm.binary_operation(BinaryOperation.Power);
           break;
         case "comma":
           this.sm.comma();

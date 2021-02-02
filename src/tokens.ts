@@ -5,6 +5,7 @@ export enum BinaryOperation {
   Sub,
   Mul,
   Div,
+  Power,
 }
 
 export class OpenParToken {}
@@ -44,6 +45,19 @@ export class BinaryOperationToken {
     this.op = op;
   }
 
+  get leftAssociative(): boolean {
+    switch (this.op) {
+      case BinaryOperation.Add:
+      case BinaryOperation.Sub:
+      case BinaryOperation.Mul:
+      case BinaryOperation.Div:
+        return true;
+      case BinaryOperation.Power:
+        return false;
+      default:
+        assertUnreachable(this.op);
+    }
+  }
   get precedence(): number {
     switch (this.op) {
       case BinaryOperation.Add:
@@ -54,6 +68,8 @@ export class BinaryOperationToken {
         return 2;
       case BinaryOperation.Div:
         return 2;
+      case BinaryOperation.Power:
+        return 3;
       default:
         assertUnreachable(this.op);
     }
@@ -68,6 +84,8 @@ export class BinaryOperationToken {
         return left * right;
       case BinaryOperation.Div:
         return left / right;
+      case BinaryOperation.Power:
+        return Math.pow(left, right);
       default:
         assertUnreachable(this.op);
     }
@@ -83,6 +101,8 @@ export class BinaryOperationToken {
         return " \u00D7 ";
       case BinaryOperation.Div:
         return " \u00F7 ";
+      case BinaryOperation.Power:
+        return " ^ ";
       default:
         assertUnreachable(this.op);
     }
@@ -121,13 +141,17 @@ export function shunting_yard(tokens: Token[]): number | undefined {
       outstack.push(element.toNumber());
       continue;
     } else if (element instanceof BinaryOperationToken) {
-      apply_while(
-        () =>
-          stack[stack.length - 1].precedence >=
-            (element as BinaryOperationToken).precedence &&
-          (openparstack[openparstack.length - 1] === undefined ||
-            openparstack[openparstack.length - 1] < stack.length)
-      );
+      apply_while(() => {
+        let last_op = stack[stack.length - 1];
+        let cur_op = element as BinaryOperationToken;
+        let last_par = openparstack[openparstack.length - 1];
+        return (
+          (last_op.precedence > cur_op.precedence ||
+            (cur_op.leftAssociative &&
+              last_op.precedence == cur_op.precedence)) &&
+          (last_par === undefined || last_par < stack.length)
+        );
+      });
       stack.push(element);
       continue;
     } else if (element instanceof OpenParToken) {

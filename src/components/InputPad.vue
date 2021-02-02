@@ -58,6 +58,14 @@
     >
       )
     </div>
+
+    <div
+      class="button"
+      @click="pressed('power')"
+      :style="{ 'grid-area': 'power' }"
+    >
+      x&#x207F;
+    </div>
   </div>
 </template>
 
@@ -82,29 +90,6 @@ import { Options, Vue } from "vue-class-component";
     },
     back_one() {
       this.$emit("clear", 1);
-    },
-    number_area(id: number): String {
-      let column = (id - 1) % 3;
-      let row = (((id - 1) / 3) | 0) + 1;
-      return this.absolute_area(row, column);
-    },
-    absolute_area(
-      row: number,
-      column: number,
-      row_size: number = 1,
-      column_size: number = 1
-    ): String {
-      row += 1;
-      column += 1;
-      return (
-        row +
-        " / " +
-        column +
-        " / " +
-        (row + row_size) +
-        " / " +
-        (column + column_size)
-      );
     },
   },
 })
@@ -137,7 +122,7 @@ export default class InputPad extends Vue {}
   grid-template-areas:
     "openpar clear div mul back"
     "closepar n1 n2 n3 sub"
-    "extra n4 n5 n6 add"
+    "power n4 n5 n6 add"
     "extra n7 n8 n9 equal"
     "extra empty n0 comma equal";
   /* grid-template-columns: repeat(5, 1.5cm); */

@@ -1,14 +1,14 @@
-import { assert } from "chai";
 import {
   Token,
-  OperationToken,
+  BinaryOperationToken,
   NumberToken,
   ResultToken,
   OpenParToken,
   CloseParToken,
+  shunting_yard,
 } from "@/tokens";
-import { Operation } from "@/tokens";
-export { Operation };
+import { BinaryOperation } from "@/tokens";
+export { BinaryOperation };
 import { assertUnreachable } from "@/util";
 
 export default class CalcStateMachine {
@@ -28,7 +28,7 @@ export default class CalcStateMachine {
           return item.toString();
         } else if (item instanceof ResultToken) {
           return item.result.toString();
-        } else if (item instanceof OperationToken) {
+        } else if (item instanceof BinaryOperationToken) {
           return item.toString();
         } else if (item instanceof OpenParToken) {
           return "(";
@@ -51,20 +51,20 @@ export default class CalcStateMachine {
   }
   result(): number | undefined {
     try {
-      return this.shunting_yard(this.tokens);
+      return shunting_yard(this.tokens);
     } catch {
       return undefined;
     }
   }
 
-  operation(x: Operation) {
+  binary_operation(x: BinaryOperation) {
     let lt = this.lastToken();
     if (
       lt === undefined ||
-      lt instanceof OperationToken ||
+      lt instanceof BinaryOperationToken ||
       lt instanceof OpenParToken
     ) {
-      if (x === Operation.Sub) {
+      if (x === BinaryOperation.Sub) {
         let nt = new NumberToken();
         nt.negative = true;
         this.tokens.push(nt);
@@ -85,7 +85,7 @@ export default class CalcStateMachine {
       lt instanceof ResultToken ||
       lt instanceof CloseParToken
     ) {
-      this.tokens.push(new OperationToken(x));
+      this.tokens.push(new BinaryOperationToken(x));
       return;
     }
     assertUnreachable(lt);
@@ -110,14 +110,14 @@ export default class CalcStateMachine {
     if (lt instanceof ResultToken) {
       this.clear();
     }
-    if (lt instanceof ResultToken || lt instanceof OperationToken) {
+    if (lt instanceof ResultToken || lt instanceof BinaryOperationToken) {
       let nt = new NumberToken();
       nt.integer.push(d);
       this.tokens.push(nt);
       return;
     }
     if (lt instanceof CloseParToken) {
-      this.tokens.push(new OperationToken(Operation.Mul));
+      this.tokens.push(new BinaryOperationToken(BinaryOperation.Mul));
       let nt = new NumberToken();
       nt.integer.push(d);
       this.tokens.push(nt);
@@ -145,7 +145,7 @@ export default class CalcStateMachine {
     if (lt instanceof ResultToken) {
       this.clear();
     }
-    if (lt instanceof ResultToken || lt instanceof OperationToken) {
+    if (lt instanceof ResultToken || lt instanceof BinaryOperationToken) {
       let nt = new NumberToken();
       nt.integer.push("0");
       nt.inDecimal = true;
@@ -153,7 +153,7 @@ export default class CalcStateMachine {
       return;
     }
     if (lt instanceof CloseParToken) {
-      this.tokens.push(new OperationToken(Operation.Mul));
+      this.tokens.push(new BinaryOperationToken(BinaryOperation.Mul));
       let nt = new NumberToken();
       nt.integer.push("0");
       nt.inDecimal = true;
@@ -162,58 +162,6 @@ export default class CalcStateMachine {
     }
     assertUnreachable(lt);
   }
-  private shunting_yard(tokens: Token[]): number | undefined {
-    let stack: OperationToken[] = [];
-    let outstack: number[] = [];
-    let openparstack: number[] = [];
-    function apply_while(predicate: () => boolean) {
-      while (stack.length > 0 && predicate()) {
-        let right = outstack.pop();
-        let left = outstack.pop();
-        let op = stack.pop();
-
-        if (left === undefined || right === undefined || op === undefined) {
-          throw "StackEmpty";
-        }
-
-        outstack.push(op.apply(left, right));
-      }
-    }
-    for (let element of this.tokens) {
-      if (element instanceof ResultToken) {
-        outstack.push(element.result);
-        continue;
-      } else if (element instanceof NumberToken) {
-        outstack.push(element.toNumber());
-        continue;
-      } else if (element instanceof OperationToken) {
-        apply_while(
-          () =>
-            stack[stack.length - 1].precedence >=
-              (element as OperationToken).precedence &&
-            (openparstack[openparstack.length - 1] === undefined ||
-              openparstack[openparstack.length - 1] < stack.length)
-        );
-        stack.push(element);
-        continue;
-      } else if (element instanceof OpenParToken) {
-        openparstack.push(stack.length);
-        continue;
-      } else if (element instanceof CloseParToken) {
-        let openparpos = openparstack.pop();
-        if (openparpos === undefined) {
-          throw "Missing open parentheses";
-        }
-        apply_while(() => stack.length > (openparpos as number));
-        continue;
-      }
-      assertUnreachable(element);
-    }
-    apply_while(() => true);
-    console.assert(stack.length === 0, stack);
-    console.assert(outstack.length === 1, outstack);
-    return outstack.pop() as number;
-  }
   backOne() {
     let lt = this.lastToken();
     if (lt === undefined) {
@@ -221,7 +169,7 @@ export default class CalcStateMachine {
     }
     if (
       lt instanceof ResultToken ||
-      lt instanceof OperationToken ||
+      lt instanceof BinaryOperationToken ||
       lt instanceof OpenParToken ||
       lt instanceof CloseParToken
     ) {
@@ -262,12 +210,12 @@ export default class CalcStateMachine {
   openpar() {
     let lt = this.lastToken();
     if (lt instanceof CloseParToken || lt instanceof ResultToken) {
-      this.tokens.push(new OperationToken(Operation.Mul));
+      this.tokens.push(new BinaryOperationToken(BinaryOperation.Mul));
       this.tokens.push(new OpenParToken());
       return;
     }
     if (
-      lt instanceof OperationToken ||
+      lt instanceof BinaryOperationToken ||
       lt === undefined ||
       lt instanceof OpenParToken
     ) {
@@ -281,7 +229,7 @@ export default class CalcStateMachine {
       if (lt.decimal.length === 0 && lt.inDecimal) {
         lt.decimal.push("0");
       }
-      this.tokens.push(new OperationToken(Operation.Mul));
+      this.tokens.push(new BinaryOperationToken(BinaryOperation.Mul));
       this.tokens.push(new OpenParToken());
       return;
     }
@@ -298,7 +246,7 @@ export default class CalcStateMachine {
       this.tokens.push(new CloseParToken());
       return;
     }
-    if (lt instanceof OperationToken || lt === undefined) {
+    if (lt instanceof BinaryOperationToken || lt === undefined) {
       return;
     }
     if (lt instanceof NumberToken) {

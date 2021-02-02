@@ -1,6 +1,10 @@
 <template>
-  <display :text="display()" />
-  <input-pad @numberpress="bla" @clear="clear" />
+  <div id="app">
+    <display :text="display()" />
+    <div class="pad">
+      <input-pad @numberpress="bla" @clear="clear" />
+    </div>
+  </div>
 </template>
 
 <script lang="ts">
@@ -8,7 +12,7 @@ import { Options, Vue } from "vue-class-component";
 import Display from "@/components/Display.vue";
 import InputPad from "@/components/InputPad.vue";
 import CalcStateMachine from "@/calc_statemachine";
-import { Operation } from "@/calc_statemachine";
+import { BinaryOperation } from "@/calc_statemachine";
 
 @Options({
   components: {
@@ -26,16 +30,16 @@ import { Operation } from "@/calc_statemachine";
       which = which.toLowerCase();
       switch (which) {
         case "add":
-          this.sm.operation(Operation.Add);
+          this.sm.binary_operation(BinaryOperation.Add);
           break;
         case "sub":
-          this.sm.operation(Operation.Sub);
+          this.sm.binary_operation(BinaryOperation.Sub);
           break;
         case "mul":
-          this.sm.operation(Operation.Mul);
+          this.sm.binary_operation(BinaryOperation.Mul);
           break;
         case "div":
-          this.sm.operation(Operation.Div);
+          this.sm.binary_operation(BinaryOperation.Div);
           break;
         case "comma":
           this.sm.comma();
@@ -73,5 +77,11 @@ export default class App extends Vue {}
   text-align: center;
   color: #2c3e50;
   margin-top: 60px;
+}
+.pad {
+  display: block;
+  width: min-content;
+  margin-left: auto;
+  margin-right: auto;
 }
 </style>

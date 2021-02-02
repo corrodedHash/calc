@@ -43,6 +43,12 @@ import { Operation } from "@/calc_statemachine";
         case "equal":
           this.sm.equal();
           break;
+        case "openpar":
+          this.sm.openpar();
+          break;
+        case "closepar":
+          this.sm.closepar();
+          break;
         default:
           this.sm.digit(which);
       }

@@ -1,57 +1,45 @@
 <template>
   <div class="gridbox">
-    <button @click="clear()" :style="{ 'grid-area': absolute_area(0, 0) }">
+    <button @click="clear()" :style="{ 'grid-area': 'clear' }">
       C
     </button>
-    <button
-      @click="pressed('div')"
-      :style="{ 'grid-area': absolute_area(0, 1) }"
-    >
+    <button @click="pressed('div')" :style="{ 'grid-area': 'div' }">
       {{ "\u00F7" }}
     </button>
-    <button
-      @click="pressed('mul')"
-      :style="{ 'grid-area': absolute_area(0, 2) }"
-    >
+    <button @click="pressed('mul')" :style="{ 'grid-area': 'mul' }">
       {{ "\u00D7" }}
     </button>
-    <button @click="back_one()" :style="{ 'grid-area': absolute_area(0, 3) }">
+    <button @click="back_one()" :style="{ 'grid-area': 'back' }">
       {{ "\u2190" }}
     </button>
     <button
       v-for="char in 9"
       :key="char"
       @click="pressed(char.toString())"
-      :style="{ 'grid-area': number_area(char) }"
+      :style="{ 'grid-area': 'n' + char.toString() }"
     >
       {{ char }}
     </button>
-    <button @click="pressed('0')" :style="{ 'grid-area': absolute_area(4, 1) }">
+    <button @click="pressed('0')" :style="{ 'grid-area': 'n0' }">
       0
     </button>
-    <button
-      @click="pressed('comma')"
-      :style="{ 'grid-area': absolute_area(4, 2) }"
-    >
+    <button @click="pressed('comma')" :style="{ 'grid-area': 'comma' }">
       ,
     </button>
-    <button
-      @click="pressed('sub')"
-      :style="{ 'grid-area': absolute_area(1, 3) }"
-    >
+    <button @click="pressed('sub')" :style="{ 'grid-area': 'sub' }">
       -
     </button>
-    <button
-      @click="pressed('add')"
-      :style="{ 'grid-area': absolute_area(2, 3) }"
-    >
+    <button @click="pressed('add')" :style="{ 'grid-area': 'add' }">
       +
     </button>
-    <button
-      @click="pressed('equal')"
-      :style="{ 'grid-area': absolute_area(3, 3, 2, 1) }"
-    >
+    <button @click="pressed('equal')" :style="{ 'grid-area': 'equal' }">
       =
+    </button>
+    <button @click="pressed('openpar')" :style="{ 'grid-area': 'openpar' }">
+      (
+    </button>
+    <button @click="pressed('closepar')" :style="{ 'grid-area': 'closepar' }">
+      )
     </button>
   </div>
 </template>
@@ -110,7 +98,19 @@ export default class InputPad extends Vue {}
 <style scoped>
 .gridbox {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-areas:
+    "openpar clear div mul back"
+    "closepar n1 n2 n3 sub"
+    "extra n4 n5 n6 add"
+    "extra n7 n8 n9 equal"
+    "extra empty n0 comma equal";
+  grid-template-columns: repeat(5, 1fr);
   grid-template-rows: repeat(5, 1fr);
+}
+.numbox {
+  display: grid;
+  grid-area: num;
+  grid-template-columns: subgrid;
+  grid-template-rows: subgrid;
 }
 </style>

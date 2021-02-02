@@ -17,6 +17,12 @@ export default class Display extends Vue {}
 <style scoped>
 .display {
   width: 100%;
+  font-size: x-large;
+  height: 1em;
+  background-color: lightblue;
+  border: 2px;
+  border-style: ridge;
+  border-color: lightcoral;
   white-space: nowrap;
 }
 </style>

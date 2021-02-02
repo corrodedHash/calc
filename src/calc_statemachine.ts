@@ -1,10 +1,4 @@
-enum State {
-  Integer,
-  Decimal,
-  Negative,
-  Operation,
-  Result,
-}
+import { assert } from "chai";
 
 export enum Operation {
   Add,
@@ -13,38 +7,60 @@ export enum Operation {
   Div,
 }
 
-interface NumberToken {
-  negative: boolean;
-  integer: String[];
-  decimal: String[];
+class NumberToken {
+  negative: boolean = false;
+  integer: String[] = [];
+  decimal: String[] = [];
+  inDecimal: boolean = false;
+  toNumber(): number {
+    return parseFloat(
+      (this.negative ? "-" : "") +
+        this.integer.join("") +
+        "." +
+        this.decimal.join("")
+    );
+  }
 }
-function isNumberToken(item: Token): item is NumberToken {
-  return (
-    (item as NumberToken).decimal !== undefined &&
-    (item as NumberToken).integer !== undefined &&
-    (item as NumberToken).negative !== undefined
-  );
-}
-function NumberTokenToNumber(item: NumberToken): number {
-  return parseFloat(
-    (item.negative ? "-" : "") +
-      item.integer.join("") +
-      "." +
-      item.decimal.join("")
-  );
-}
-interface ResultToken {
+class ResultToken {
   result: number;
+  constructor(result: number) {
+    this.result = result;
+  }
 }
-function isResultToken(item: Token): item is ResultToken {
-  return (item as ResultToken).result !== undefined;
-}
-interface OperationToken {
+class OperationToken {
   op: Operation;
-}
+  constructor(op: Operation) {
+    this.op = op;
+  }
 
-function isOperationToken(item: Token): item is OperationToken {
-  return (item as OperationToken).op !== undefined;
+  get precedence(): number {
+    switch (this.op) {
+      case Operation.Add:
+        return 1;
+      case Operation.Sub:
+        return 1;
+      case Operation.Mul:
+        return 2;
+      case Operation.Div:
+        return 2;
+      default:
+        assertUnreachable(this.op);
+    }
+  }
+  apply(left: number, right: number): number {
+    switch (this.op) {
+      case Operation.Add:
+        return left + right;
+      case Operation.Sub:
+        return left - right;
+      case Operation.Mul:
+        return left * right;
+      case Operation.Div:
+        return left / right;
+      default:
+        assertUnreachable(this.op);
+    }
+  }
 }
 
 type Token = NumberToken | ResultToken | OperationToken;
@@ -54,15 +70,7 @@ export function assertUnreachable(_x: never): never {
 }
 
 export default class CalcStateMachine {
-  private state: State[] = [];
   private tokens: Token[] = [];
-  private lastState(): State | undefined {
-    if (this.state.length === 0) {
-      return undefined;
-    } else {
-      return this.state[this.state.length - 1];
-    }
-  }
   private lastToken(): Token | undefined {
     if (this.tokens.length === 0) {
       return undefined;
@@ -94,17 +102,20 @@ export default class CalcStateMachine {
   asText(): String {
     let result = this.tokens
       .map((item) => {
-        if (isNumberToken(item)) {
+        if (item instanceof NumberToken) {
           return this.numbertokenAsText(item);
-        } else if (isResultToken(item)) {
+        } else if (item instanceof ResultToken) {
           return item.result.toString();
         }
         return this.opAsText(item);
       })
       .join("");
+    let lt = this.lastToken();
     if (
-      this.lastState() === State.Decimal &&
-      (this.lastToken() as NumberToken).decimal.length === 0
+      lt !== undefined &&
+      lt instanceof NumberToken &&
+      lt.decimal.length === 0 &&
+      lt.inDecimal
     ) {
       result += ",";
     }
@@ -112,117 +123,113 @@ export default class CalcStateMachine {
   }
 
   operation(x: Operation) {
-    let state = this.lastState();
-    switch (state) {
-      case State.Decimal:
-      case State.Integer:
-      case State.Result:
-        this.state.push(State.Operation);
-        this.tokens.push({ op: x });
-        break;
-      case State.Negative:
-        break;
-      case State.Operation:
-        break;
-      case undefined:
-        break;
-      default:
-        assertUnreachable(state);
+    let lt = this.lastToken();
+    if (lt === undefined || lt instanceof OperationToken) {
+      if (x === Operation.Sub) {
+        let nt = new NumberToken();
+        nt.negative = true;
+        this.tokens.push(nt);
+      }
+      return;
     }
+    if (lt instanceof NumberToken) {
+      if (lt.integer.length === 0) {
+        return;
+      }
+      if (lt.inDecimal && lt.decimal.length === 0) {
+        lt.decimal.push("0");
+      }
+    }
+
+    if (lt instanceof NumberToken || lt instanceof ResultToken) {
+      this.tokens.push(new OperationToken(x));
+      return;
+    }
+    assertUnreachable(lt);
   }
 
   digit(d: String) {
-    let state = this.lastState();
-    switch (state) {
-      case State.Decimal:
-        (this.lastToken() as NumberToken).decimal.push(d);
-        break;
-      case State.Integer:
-      case State.Negative:
-        (this.lastToken() as NumberToken).integer.push(d);
-        break;
-      case State.Result:
-        this.clear();
-      case State.Operation:
-      case undefined:
-        this.state.push(State.Integer);
-        this.tokens.push({ negative: false, integer: [d], decimal: [] });
-        break;
-      default:
-        assertUnreachable(state);
+    let lt = this.lastToken();
+    if (lt === undefined) {
+      let nt = new NumberToken();
+      nt.integer.push(d);
+      this.tokens.push(nt);
+      return;
     }
+    if (lt instanceof NumberToken) {
+      if (lt.inDecimal) {
+        lt.decimal.push(d);
+      } else {
+        lt.integer.push(d);
+      }
+      return;
+    }
+    if (lt instanceof ResultToken) {
+      this.clear();
+    }
+    if (lt instanceof ResultToken || lt instanceof OperationToken) {
+      let nt = new NumberToken();
+      nt.integer.push(d);
+      this.tokens.push(nt);
+      return;
+    }
+    assertUnreachable(lt);
   }
   comma() {
-    let state = this.lastState();
-    switch (state) {
-      case State.Integer:
-      case State.Negative:
-        this.state.push(State.Decimal);
-        break;
-      case State.Decimal:
-      case State.Result:
-        return;
-      case State.Operation:
-      case undefined:
-        this.state.push(State.Decimal);
-        this.tokens.push({ negative: false, integer: ["0"], decimal: [] });
-        break;
-      default:
-        assertUnreachable(state);
+    let lt = this.lastToken();
+    if (lt === undefined) {
+      let nt = new NumberToken();
+      nt.integer.push("0");
+      nt.inDecimal = true;
+      this.tokens.push(nt);
+      return;
     }
+    if (lt instanceof NumberToken) {
+      if (lt.inDecimal) {
+        return;
+      } else {
+        lt.inDecimal = true;
+      }
+      return;
+    }
+    if (lt instanceof ResultToken) {
+      this.clear();
+    }
+    if (lt instanceof ResultToken || lt instanceof OperationToken) {
+      let nt = new NumberToken();
+      nt.integer.push("0");
+      nt.inDecimal = true;
+      this.tokens.push(nt);
+      return;
+    }
+    assertUnreachable(lt);
   }
   private shunting_yard(tokens: Token[]): number | undefined {
-    let stack: Operation[] = [];
+    let stack: OperationToken[] = [];
     let outstack: number[] = [];
-    function precedence(op: Operation): number {
-      switch (op) {
-        case Operation.Add:
-          return 1;
-        case Operation.Sub:
-          return 1;
-        case Operation.Mul:
-          return 2;
-        case Operation.Div:
-          return 2;
-        default:
-          assertUnreachable(op);
-      }
-    }
-    function apply_op(op: Operation, left: number, right: number): number {
-      switch (op) {
-        case Operation.Add:
-          return left + right;
-        case Operation.Sub:
-          return left - right;
-        case Operation.Mul:
-          return left * right;
-        case Operation.Div:
-          return left / right;
-        default:
-          assertUnreachable(op);
-      }
-    }
-    tokens.forEach((element) => {
-      if (isResultToken(element)) {
+    for (let element of this.tokens) {
+      if (element instanceof ResultToken) {
         outstack.push(element.result);
-      } else if (isNumberToken(element)) {
-        outstack.push(NumberTokenToNumber(element));
+      } else if (element instanceof NumberToken) {
+        outstack.push(element.toNumber());
       } else {
         while (
           stack.length > 0 &&
-          precedence(stack[stack.length - 1]) >= precedence(element.op)
+          stack[stack.length - 1].precedence >= element.precedence
         ) {
           let right = outstack.pop();
           let left = outstack.pop();
           let op = stack.pop();
 
-          outstack.push(
-            apply_op(op as Operation, left as number, right as number)
-          );
+          if (left === undefined || right === undefined || op === undefined) {
+            return undefined;
+          }
+
+          outstack.push(op.apply(left, right));
         }
-        stack.push(element.op);
+        stack.push(element);
       }
-    });
+    }
     while (stack.length > 0) {
       let right = outstack.pop();
       let left = outstack.pop();
@@ -230,25 +237,49 @@ export default class CalcStateMachine {
       if (left === undefined || right === undefined || op === undefined) {
         return undefined;
       }
-
-      outstack.push(apply_op(op, left, right));
+      outstack.push(op.apply(left, right));
     }
     console.assert(outstack.length === 1, outstack.length);
     return outstack.pop() as number;
   }
-  backOne() {}
+  backOne() {
+    let lt = this.lastToken();
+    if (lt === undefined) {
+      return;
+    }
+    if (lt instanceof ResultToken || lt instanceof OperationToken) {
+      this.tokens.pop();
+      return;
+    }
+    if (lt instanceof NumberToken) {
+      if (lt.decimal.length > 0) {
+        lt.decimal.pop();
+      } else if (lt.inDecimal) {
+        lt.inDecimal = false;
+      } else if (lt.integer.length > 0) {
+        lt.integer.pop();
+        if (lt.integer.length === 0 && !lt.negative) {
+          this.tokens.pop();
+        }
+      } else if (lt.negative) {
+        this.tokens.pop();
+      } else {
+        console.log(lt);
+        this.tokens.pop();
+      }
+      return;
+    }
+    assertUnreachable(lt);
+  }
   equal() {
     let result = this.shunting_yard(this.tokens);
     if (result === undefined) {
       this.tokens = [];
-      this.state = [];
       return;
     }
     this.tokens = [{ result: result }];
-    this.state = [State.Result];
   }
   clear() {
     this.tokens = [];
-    this.state = [];
   }
 }

@@ -17,5 +17,6 @@ export default class Display extends Vue {}
 <style scoped>
 .display {
   width: 100%;
+  white-space: nowrap;
 }
 </style>

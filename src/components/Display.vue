@@ -19,12 +19,14 @@ export default class Display extends Vue {}
   width: 100%;
   margin-bottom: 0.2cm;
   font-size: x-large;
-  height: 1.5em;
-  line-height: 1.5em;
+  height: 2em;
+  line-height: 2em;
   background-color: lightblue;
   border: 2px;
   border-style: ridge;
   border-color: lightcoral;
   white-space: nowrap;
+  overflow-x: auto;
+  overflow-y: hidden;
 }
 </style>

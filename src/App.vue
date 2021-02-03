@@ -1,4 +1,7 @@
 <template>
+  <!-- <div class="menubar">
+    <div class="about"></div>
+  </div> -->
   <display :text="display()" />
   <div class="pad">
     <input-pad @numberpress="bla" @clear="clear" />
@@ -86,19 +89,32 @@ import { UnaryOperation } from "./tokens";
 export default class App extends Vue {}
 </script>
 
-<style>
+<style scoped>
 #app {
   font-family: Avenir, Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-align: center;
   color: #2c3e50;
-  margin-top: 60px;
 }
 .pad {
   display: block;
   width: min-content;
   margin-left: auto;
   margin-right: auto;
+}
+.menubar {
+  /* position:fixed;
+  top: 0%;
+  left: 0%; */
+  width: 100%;
+  background-color: rgb(242, 250, 255);
+  height: 40px;
+  margin-bottom: 20px;
+  /* border: 4px;
+  border-style: inset; */
+  border-color: rgb(65, 65, 55);
+  border-bottom: 6px;
+  border-bottom-style: double;
 }
 </style>

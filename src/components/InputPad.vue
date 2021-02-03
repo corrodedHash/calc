@@ -92,8 +92,8 @@ export default class InputPad extends Vue {}
     "sin openpar clear div mul back"
     "cos closepar n1 n2 n3 sub"
     "tan power n4 n5 n6 add"
-    "ln e0 n7 n8 n9 equal"
-    "log e2 e3 n0 comma equal";
+    "e0 ln n7 n8 n9 equal"
+    "e1 log e2 n0 comma equal";
   width: min-content;
   grid-auto-columns: min-content;
   grid-template-rows: repeat(5, 1fr);

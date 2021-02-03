@@ -1,4 +1,38 @@
+import { assert } from "chai";
 import { assertUnreachable } from "./util";
+
+function operation_precedence(op: BinaryOperationToken | UnaryOperationToken) {
+  let x: UnaryOperation | BinaryOperation;
+  if (op instanceof BinaryOperationToken) {
+    x = op.op;
+  } else {
+    x = op.unary_op;
+    if (!(op instanceof UnaryOperationToken)) {
+      assertUnreachable(op);
+    }
+  }
+  switch (x) {
+    case BinaryOperation.Add:
+      return 1;
+    case BinaryOperation.Sub:
+      return 1;
+    case BinaryOperation.Mul:
+      return 2;
+    case BinaryOperation.Div:
+      return 2;
+    case BinaryOperation.Power:
+      return 3;
+    case UnaryOperation.Ln:
+    case UnaryOperation.Log:
+    case UnaryOperation.Negate:
+    case UnaryOperation.Sin:
+    case UnaryOperation.Cos:
+    case UnaryOperation.Tan:
+      return 4;
+    default:
+      assertUnreachable(x);
+  }
+}
 
 export enum BinaryOperation {
   Add,
@@ -8,26 +42,28 @@ export enum BinaryOperation {
   Power,
 }
 
+export enum UnaryOperation {
+  Negate,
+  Ln,
+  Log,
+  Sin,
+  Cos,
+  Tan,
+}
+
 export class OpenParToken {}
 export class CloseParToken {}
 
 export class NumberToken {
-  negative: boolean = false;
   integer: String[] = [];
   decimal: String[] = [];
   inDecimal: boolean = false;
   toNumber(): number {
-    return parseFloat(
-      (this.negative ? "-" : "") +
-        this.integer.join("") +
-        "." +
-        this.decimal.join("")
-    );
+    return parseFloat(this.integer.join("") + "." + this.decimal.join(""));
   }
 
   toString(): String {
     let result = "";
-    if (this.negative) result += "-";
     result += this.integer.join("");
     if (this.decimal.length > 0) result += "," + this.decimal.join("");
     return result;
@@ -54,22 +90,6 @@ export class BinaryOperationToken {
         return true;
       case BinaryOperation.Power:
         return false;
-      default:
-        assertUnreachable(this.op);
-    }
-  }
-  get precedence(): number {
-    switch (this.op) {
-      case BinaryOperation.Add:
-        return 1;
-      case BinaryOperation.Sub:
-        return 1;
-      case BinaryOperation.Mul:
-        return 2;
-      case BinaryOperation.Div:
-        return 2;
-      case BinaryOperation.Power:
-        return 3;
       default:
         assertUnreachable(this.op);
     }
@@ -109,28 +129,85 @@ export class BinaryOperationToken {
   }
 }
 
+export class UnaryOperationToken {
+  unary_op: UnaryOperation;
+  constructor(unary_op: UnaryOperation) {
+    this.unary_op = unary_op;
+  }
+  apply(n: number): number {
+    switch (this.unary_op) {
+      case UnaryOperation.Negate:
+        return -n;
+      case UnaryOperation.Ln:
+        return Math.log(n);
+      case UnaryOperation.Log:
+        return Math.log10(n);
+      case UnaryOperation.Cos:
+        return Math.cos(n);
+      case UnaryOperation.Sin:
+        return Math.sin(n);
+      case UnaryOperation.Tan:
+        return Math.tan(n);
+      default:
+        assertUnreachable(this.unary_op);
+    }
+  }
+  toString(): String {
+    switch (this.unary_op) {
+      case UnaryOperation.Negate:
+        return "-";
+      case UnaryOperation.Ln:
+        return "ln ";
+      case UnaryOperation.Log:
+        return "log ";
+      case UnaryOperation.Cos:
+        return "cos ";
+      case UnaryOperation.Sin:
+        return "sin ";
+      case UnaryOperation.Tan:
+        return "tan ";
+      default:
+        assertUnreachable(this.unary_op);
+    }
+  }
+}
 export type Token =
   | NumberToken
   | ResultToken
   | BinaryOperationToken
+  | UnaryOperationToken
   | OpenParToken
   | CloseParToken;
 
 export function shunting_yard(tokens: Token[]): number | undefined {
-  let stack: BinaryOperationToken[] = [];
+  let stack: (BinaryOperationToken | UnaryOperationToken)[] = [];
   let outstack: number[] = [];
   let openparstack: number[] = [];
   function apply_while(predicate: () => boolean) {
     while (stack.length > 0 && predicate()) {
-      let right = outstack.pop();
-      let left = outstack.pop();
       let op = stack.pop();
-
-      if (left === undefined || right === undefined || op === undefined) {
+      if (op === undefined) {
         throw "StackEmpty";
       }
+      if (op instanceof BinaryOperationToken) {
+        let right = outstack.pop();
+        let left = outstack.pop();
 
-      outstack.push(op.apply(left, right));
+        if (left === undefined || right === undefined) {
+          throw "StackEmpty";
+        }
+
+        outstack.push(op.apply(left, right));
+        continue;
+      } else if (op instanceof UnaryOperationToken) {
+        let n = outstack.pop();
+        if (n === undefined) {
+          throw "StackEmpty";
+        }
+        outstack.push(op.apply(n));
+        continue;
+      }
+      assertUnreachable(op);
     }
   }
   for (let element of tokens) {
@@ -146,12 +223,15 @@ export function shunting_yard(tokens: Token[]): number | undefined {
         let cur_op = element as BinaryOperationToken;
         let last_par = openparstack[openparstack.length - 1];
         return (
-          (last_op.precedence > cur_op.precedence ||
+          (operation_precedence(last_op) > operation_precedence(cur_op) ||
             (cur_op.leftAssociative &&
-              last_op.precedence == cur_op.precedence)) &&
+              operation_precedence(last_op) == operation_precedence(cur_op))) &&
           (last_par === undefined || last_par < stack.length)
         );
       });
+      stack.push(element);
+      continue;
+    } else if (element instanceof UnaryOperationToken) {
       stack.push(element);
       continue;
     } else if (element instanceof OpenParToken) {

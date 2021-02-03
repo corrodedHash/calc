@@ -11,6 +11,7 @@ import Display from "@/components/Display.vue";
 import InputPad from "@/components/InputPad.vue";
 import CalcStateMachine from "@/calc_statemachine";
 import { BinaryOperation } from "@/calc_statemachine";
+import { UnaryOperation } from "./tokens";
 
 @Options({
   components: {
@@ -41,6 +42,21 @@ import { BinaryOperation } from "@/calc_statemachine";
           break;
         case "power":
           this.sm.binary_operation(BinaryOperation.Power);
+          break;
+        case "sin":
+          this.sm.unary_operation(UnaryOperation.Sin);
+          break;
+        case "cos":
+          this.sm.unary_operation(UnaryOperation.Cos);
+          break;
+        case "tan":
+          this.sm.unary_operation(UnaryOperation.Tan);
+          break;
+        case "ln":
+          this.sm.unary_operation(UnaryOperation.Ln);
+          break;
+        case "log":
+          this.sm.unary_operation(UnaryOperation.Log);
           break;
         case "comma":
           this.sm.comma();

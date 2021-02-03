@@ -1,70 +1,13 @@
 <template>
   <div class="gridbox">
-    <div class="button" @click="clear()" :style="{ 'grid-area': 'clear' }">
-      C
-    </div>
-    <div class="button" @click="pressed('div')" :style="{ 'grid-area': 'div' }">
-      {{ "\u00F7" }}
-    </div>
-    <div class="button" @click="pressed('mul')" :style="{ 'grid-area': 'mul' }">
-      {{ "\u00D7" }}
-    </div>
-    <div class="button" @click="back_one()" :style="{ 'grid-area': 'back' }">
-      {{ "\u2190" }}
-    </div>
     <div
+      v-for="x in buttons()"
+      :key="x[0]"
       class="button"
-      v-for="char in 9"
-      :key="char"
-      @click="pressed(char.toString())"
-      :style="{ 'grid-area': 'n' + char.toString() }"
+      @click="pressed(x[0])"
+      :style="{ 'grid-area': x[0] }"
     >
-      {{ char }}
-    </div>
-    <div class="button" @click="pressed('0')" :style="{ 'grid-area': 'n0' }">
-      0
-    </div>
-    <div
-      class="button"
-      @click="pressed('comma')"
-      :style="{ 'grid-area': 'comma' }"
-    >
-      ,
-    </div>
-    <div class="button" @click="pressed('sub')" :style="{ 'grid-area': 'sub' }">
-      -
-    </div>
-    <div class="button" @click="pressed('add')" :style="{ 'grid-area': 'add' }">
-      +
-    </div>
-    <div
-      class="button"
-      @click="pressed('equal')"
-      :style="{ 'grid-area': 'equal' }"
-    >
-      =
-    </div>
-    <div
-      class="button"
-      @click="pressed('openpar')"
-      :style="{ 'grid-area': 'openpar' }"
-    >
-      (
-    </div>
-    <div
-      class="button"
-      @click="pressed('closepar')"
-      :style="{ 'grid-area': 'closepar' }"
-    >
-      )
-    </div>
-
-    <div
-      class="button"
-      @click="pressed('power')"
-      :style="{ 'grid-area': 'power' }"
-    >
-      x&#x207F;
+      {{ x[1] }}
     </div>
   </div>
 </template>
@@ -83,13 +26,39 @@ import { Options, Vue } from "vue-class-component";
   },
   methods: {
     pressed(which: String) {
-      this.$emit("numberpress", which);
+      if (which == "back") {
+        this.$emit("clear", 1);
+      } else if (which == "clear") {
+        this.$emit("clear", -1);
+      } else if (which.match(/^n[0-9]$/)) {
+        this.$emit("numberpress", which[1]);
+      } else {
+        this.$emit("numberpress", which);
+      }
     },
-    clear() {
-      this.$emit("clear", -1);
-    },
-    back_one() {
-      this.$emit("clear", 1);
+    buttons() {
+      let res = [
+        ["openpar", "("],
+        ["closepar", ")"],
+        ["clear", "C"],
+        ["div", "\u00F7"],
+        ["mul", "\u00D7"],
+        ["back", "\u2190"],
+        ["comma", ","],
+        ["sub", "-"],
+        ["add", "+"],
+        ["equal", "="],
+        ["power", "x\u207F"],
+        ["sin", "sin"],
+        ["cos", "cos"],
+        ["tan", "tan"],
+        ["ln", "ln"],
+        ["log", "log"],
+      ];
+      for (let i = 0; i < 10; i++) {
+        res.push([`n${i}`, `${i}`]);
+      }
+      return res;
     },
   },
 })
@@ -120,12 +89,11 @@ export default class InputPad extends Vue {}
 .gridbox {
   display: grid;
   grid-template-areas:
-    "openpar clear div mul back"
-    "closepar n1 n2 n3 sub"
-    "power n4 n5 n6 add"
-    "extra n7 n8 n9 equal"
-    "extra empty n0 comma equal";
-  /* grid-template-columns: repeat(5, 1.5cm); */
+    "sin openpar clear div mul back"
+    "cos closepar n1 n2 n3 sub"
+    "tan power n4 n5 n6 add"
+    "ln e0 n7 n8 n9 equal"
+    "log e2 e3 n0 comma equal";
   width: min-content;
   grid-auto-columns: min-content;
   grid-template-rows: repeat(5, 1fr);

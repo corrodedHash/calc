@@ -28,5 +28,6 @@ export default class Display extends Vue {}
   white-space: nowrap;
   overflow-x: auto;
   overflow-y: hidden;
+  text-align: center;
 }
 </style>
